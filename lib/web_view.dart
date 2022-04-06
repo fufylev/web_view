@@ -1,11 +1,11 @@
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 class WebViewWidget extends StatefulWidget {
-  const WebViewWidget({Key? key, required this.isServerListening})
-      : super(key: key);
+  const WebViewWidget({Key? key, required this.isServerListening}) : super(key: key);
 
   final bool isServerListening;
 
@@ -15,29 +15,21 @@ class WebViewWidget extends StatefulWidget {
 
 class _WebViewWidgetState extends State<WebViewWidget> {
   bool hasController = false;
-  late WebViewController controller;
+  late InAppWebViewController webViewController;
+  String tickingMessage = 'пусто пока';
   String messageJavascriptChannel = 'пусто пока';
+  String messageJavascriptChannelCustomStream = 'пусто пока';
 
-  JavascriptChannel _toasterJavascriptChannel(BuildContext context) {
-    return JavascriptChannel(
-        name: 'OHLCstream',
-        onMessageReceived: (JavascriptMessage message) {
-          log(message.message, name: 'OHLCstream');
-          setState(() => messageJavascriptChannel = message.message);
-        });
+  @override
+  void initState() {
+    init();
+    super.initState();
   }
 
-  void setInitialChartData() async {
-    await Future.delayed(const Duration(milliseconds: 2500));
-    controller
-        .runJavascriptReturningResult(
-            "changeGraphType.funcChangeTimeframe('15')")
-        .then(
-            (value) => log(value.toString(), name: 'funcChangeType callback'));
-    controller
-        .runJavascriptReturningResult("changeGraphType.funcChangeType('3')")
-        .then(
-            (value) => log(value.toString(), name: 'funcChangeType callback'));
+  void init() async {
+    if (Platform.isAndroid) {
+      await AndroidInAppWebViewController.setWebContentsDebuggingEnabled(true);
+    }
   }
 
   @override
@@ -49,43 +41,146 @@ class _WebViewWidgetState extends State<WebViewWidget> {
       height: size.height,
       child: Column(
         children: [
-          if (widget.isServerListening == true)
-            SizedBox(
-              width: size.width,
-              height: size.height - 130,
-              child: WebView(
-                initialUrl:
-                    'http://localhost:58888/index.html?symbol=EURUSD&lang=en&timeframe=60&type=1&theme=light&server_type=5&showname=0',
-                javascriptMode: JavascriptMode.unrestricted,
-                onWebViewCreated: (WebViewController webViewController) {
-                  controller = webViewController;
-                  setState(() {
-                    hasController = true;
-                  });
-                  setInitialChartData();
-                },
-                onProgress: (int progress) {},
-                javascriptChannels: <JavascriptChannel>{
-                  _toasterJavascriptChannel(context),
-                },
-                onPageStarted: (String url) {
-                  log(url, name: 'адрес страницы которую загружаем:');
-                },
-                onPageFinished: (String url) {
-                  log(url, name: 'адрес страницы которую ЗАГРУЗИЛИ:');
-                },
-                onWebResourceError: (_) {},
-                gestureNavigationEnabled: true,
-                backgroundColor: Colors.white,
-                zoomEnabled: true,
+          SizedBox(
+            width: size.width,
+            height: 100,
+            child: InAppWebView(
+              initialFile: 'assets/index.html',
+              initialOptions: InAppWebViewGroupOptions(
+                crossPlatform: InAppWebViewOptions(
+                  useShouldOverrideUrlLoading: true,
+                  mediaPlaybackRequiresUserGesture: false,
+                ),
+                android: AndroidInAppWebViewOptions(
+                  useHybridComposition: true,
+                ),
+                ios: IOSInAppWebViewOptions(
+                  allowsInlineMediaPlayback: true,
+                ),
               ),
+              onLoadStart: (controller, url) async {},
+              onLoadStop: (controller, url) async {},
+              onConsoleMessage: (
+                InAppWebViewController controller,
+                ConsoleMessage consoleMessage,
+              ) {
+                log("console message: ${consoleMessage.message}", name: 'ConsoleMessage');
+                setState(() => messageJavascriptChannel = consoleMessage.message);
+              },
+              onWebViewCreated: (InAppWebViewController controller) {
+                setState(() {
+                  hasController = true;
+                  webViewController = controller;
+                });
+
+                // пример 1  [mySum]
+                /**
+                    тут мы получаем на вход от JS аргументы в формате [12, 2, 50]
+                    и отправляем в JS обратно результат действий над аргументами
+                    далее мы получил лог результатов нижу в методе [onConsoleMessage]
+                 */
+                controller.addJavaScriptHandler(
+                  handlerName: "mySum",
+                  callback: (args) {
+                    // Here you receive all the arguments from the JavaScript side  that is a List<dynamic>
+                    log(args.toString(), name: 'Аргументы из функции mySum');
+                    return args.reduce((curr, next) => curr + next);
+                  },
+                );
+
+                // пример 2 [handlerFoo]
+                /**
+                 в данном примере мы делаем два действия
+                    * в контроллере "handlerFoo":
+                    1. Сначала получаем аргументы от JS в виде [{'bar': 'bar_value', 'baz': 'baz_value'}]
+                    2. Их же возвращаем обратно в JS
+                    * в контроллере "handlerFooWithArgs":
+                    3. Получаем ответ обработки результата от JS
+                 */
+                controller.addJavaScriptHandler(
+                  handlerName: "handlerFoo",
+                  callback: (args) {
+                    // Here you receive all the arguments from the JavaScript side  that is a List<dynamic>
+                    log(args.toString(), name: 'Аргументы из функции handlerFoo');
+                    return {'bar': 'bar_value', 'baz': 'baz_value'};
+                  },
+                );
+                controller.addJavaScriptHandler(
+                  handlerName: 'handlerFooWithArgs',
+                  callback: (args) {
+                    log(args.toString(), name: 'Аргументы из функции handlerFooWithArgs');
+                    // it will print: [1, true, [bar, 5], {foo: baz}, {bar: bar_value, baz: baz_value}]
+                  },
+                );
+
+                // пример 3 [customStream]
+                /**
+                    В данном контроллере мы отлавливаем стрим от результата нажатия на кнопку на
+                    экране телефона
+                 */
+                controller.addJavaScriptHandler(
+                  handlerName: "customStream",
+                  callback: (args) {
+                    // Here you receive all the arguments from the JavaScript side that is a List<dynamic>
+                    log(args.toString(), name: 'Аргументы из функции customStream');
+                    setState(() => messageJavascriptChannelCustomStream = args.toString());
+                    return [];
+                  },
+                );
+
+                // пример 4 [tickingStream]
+                /**
+                 * тут мы получаем данные от стрима 'tickingStream'] и уже обрабатываем как нам надо
+                 */
+                controller.addJavaScriptHandler(
+                  handlerName: "tickingStream",
+                  callback: (args) {
+                    // Here you receive all the arguments from the JavaScript side  that is a List<dynamic>
+                    log(args.toString(), name: 'Аргументы из стрима tickingStream');
+                    setState(() => tickingMessage = args.toString());
+                    return {};
+                  },
+                );
+              },
+            ),
+          ),
+          if (hasController)
+            Column(
+              children: [
+                // кнопка без колбека
+                ElevatedButton(
+                  onPressed: () {
+                    webViewController.evaluateJavascript(source: '''onMessage("My message")''');
+                  },
+                  child: const Text('Send "My message"'),
+                ),
+                // кнопка с колбеком
+                ElevatedButton(
+                  onPressed: () {
+                    webViewController.evaluateJavascript(
+                        source: '''onMessage("Hello InstaForex")''').then((value) {
+                      log(value.toString(), name: 'Callback ');
+                    });
+                  },
+                  child: const Text('Send "Hello InstaForex"'),
+                ),
+              ],
             ),
           Container(
             padding: const EdgeInsets.all(6.0),
             color: Colors.black.withOpacity(0.1),
-            height: 100,
+            // height: 100,
             width: size.height,
-            child: Text('Строка из стрима: $messageJavascriptChannel'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Строка из консоли стрима tickingStream: $tickingMessage'),
+                const SizedBox(height: 20),
+                Text('Строка из консоли: $messageJavascriptChannel'),
+                const SizedBox(height: 20),
+                Text('Строка из стрима customStream: $messageJavascriptChannelCustomStream'),
+              ],
+            ),
           )
         ],
       ),

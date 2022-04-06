@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Flutter InAppBrowser</title>
+</head>
+<body>
+<h1>JavaScript Handlers</h1>
+<script>
+    // In order to call window.flutter_inappwebview.callHandler(handlerName <String>, ...args)
+    // properly, you need to wait and listen the JavaScript event flutterInAppWebViewPlatformReady.
+    // This event will be dispatched as soon as the platform (Android or iOS) is ready to handle the callHandler method.
+
+    // Чтобы вызвать [window.flutter_inappwebview.callHandler(handlerName <String>, ...args)]
+    // корректно, необходимо ожидать and слушать  JavaScript эвент flutterInAppWebViewPlatformReady.
+    // Этот эвент будет отправленa как только платформа (Android or iOS) будет готова к работе с callHandler мнтодом.
+
+    // ==================================== //
+    // пример 1  [mySum]
+    /**
+     В данном примере мы просто отправляем во Флаттер аргументы в формате [12, 2, 50]
+     где он их обработает и вышлет результат
+     после данный результат мы отправляем в console и Флаттер получит данный лог в методе [onConsoleMessage]
+     */
+    window.addEventListener("flutterInAppWebViewPlatformReady", function(_) {
+        // call flutter handler with name 'mySum' and pass one or more arguments
+        window.flutter_inappwebview.callHandler('mySum', 12, 2, 50).then(function(result) {
+            console.log(result); // get result from Flutter side. It will be the number 64.
+        });
+    });
+
+    // ==================================== //
+    //  пример 2 [handlerFoo]
+    /**
+     * В данному примере мы получаем какой то объем данных и далее его
+     * отправляем в консоль JS а Флаттер отловит данный лог в методе [onConsoleMessage]
+     *
+     * Далее мы отпавляем обратно в Flutter аргументы в виде [1, true, ['bar', 5], {foo: 'baz'}, result]
+     * Но Flutter уже отлавливает это в контроллере "handlerFooWithArgs"
+     */
+    window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
+        window.flutter_inappwebview.callHandler('handlerFoo')
+            .then(function(result) {
+                // print to the console the data coming from the Flutter side.
+                console.log(JSON.stringify(result));
+                const args = [1, true, ['bar', 5], {foo: 'baz'}, result];
+                window.flutter_inappwebview
+                    .callHandler('handlerFooWithArgs', ...args);
+            });
+    });
+
+    // ==================================== //
+    // пример 3 [customStream] эта функция принимает какое то сообщение и отправляет колбек
+
+    /**
+     * тут мы запускаем лисенер "flutterInAppWebViewPlatformReady"
+     * который будет слушать на своем канале ГЛОБАЛЬНО!!!!
+     * @type {boolean}
+     */
+    var isFlutterInAppWebViewReady = false;
+    window.addEventListener("flutterInAppWebViewPlatformReady", function(_) {
+        isFlutterInAppWebViewReady = true;
+    });
+
+    /**
+     * тут мы получаем входящее сообщение от [Flutter] и далее делаем с ним что хотим
+     * для примера я вывел данные в консоль которые Flutter получит в методе [onConsoleMessage]
+     * а также подготовил аргументы [args] и отправил из обратно в стрим [customStream]
+     * [Flutter] уже у себя получит данные аргументы в контроллере ["customStream"]
+     * @param message - string
+     */
+    function onMessage(message) {
+        if (isFlutterInAppWebViewReady) {
+            const args = [`это колбек от onMessage() метода в который мы послали сообщение ${message}`];
+            window.flutter_inappwebview.callHandler('customStream').then(function (_) {
+                window.flutter_inappwebview.callHandler('customStream', ...args);
+            });
+        }
+        /**
+         * данный лог Flutter получит в виде колбека на вызов метода [webViewController.evaluateJavascript]
+         * Пример кода на Flutter
+         * webViewController.evaluateJavascript(
+         *                         source: '''onMessage("Hello InstaForex")''').then((value) {
+         *                       log(value.toString(), name: 'Callback ');
+         *                     });
+         */
+        console.log(JSON.stringify(message));
+    }
+
+    // ==================================== //
+    // пример 4 [tickingStream]
+    /**
+     * тут мы тупо запускаем стрим со счетчиком на 10 секунд и отправляем его в стрим ['tickingStream']
+     */
+    window.addEventListener("flutterInAppWebViewPlatformReady", function(_) {
+        window.flutter_inappwebview.callHandler('tickingStream').then(function (_) {
+            var number = 0;
+            const myTimer = setInterval(() => {
+                number++;
+                window.flutter_inappwebview.callHandler('tickingStream', `tick-${number}`);
+            }, 1000);
+
+            setTimeout(() => {
+                clearInterval(myTimer);
+                window.flutter_inappwebview.callHandler('tickingStream', 'Счётчик закончился - спасибо за внимание');
+            }, 10000);
+
+        });
+    });
+
+</script>
+</body>
+</html>
