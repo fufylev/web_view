@@ -46,8 +46,9 @@ class _WebViewWidgetState extends State<WebViewWidget> {
               height: size.height - 50 - 100,
               child: InAppWebView(
                 initialUrlRequest: URLRequest(
-                    url: Uri.parse(
-                        'https://appcharts.ifxdb.com/index.html?symbol=GOLD&lang=en&timeframe=1&type=1&theme=light&server_type=4&showname=0&socket=1&ready_stream_new=1')),
+                  url: Uri.parse(
+                      'https://appcharts.ifxdb.com/index.html?symbol=GOLD&lang=en&timeframe=1&type=1&theme=light&server_type=4&showname=0&socket=1&ready_stream_new=1'),
+                ),
                 initialOptions: InAppWebViewGroupOptions(
                   crossPlatform: InAppWebViewOptions(
                     useShouldOverrideUrlLoading: true,
