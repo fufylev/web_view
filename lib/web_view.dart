@@ -164,6 +164,17 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                   },
                   child: const Text('Send "Hello InstaForex"'),
                 ),
+                ElevatedButton(
+                  onPressed: () {
+                    webViewController.evaluateJavascript(
+                        source:
+                            '''changeGraphType.funcSaveIndicators("Hello InstaForex")''').then(
+                        (value) {
+                      log(value.toString(), name: 'Callback ');
+                    });
+                  },
+                  child: const Text('Send "funcSaveIndicators"'),
+                ),
               ],
             ),
           Container(

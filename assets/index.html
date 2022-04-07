@@ -6,6 +6,8 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Flutter InAppBrowser</title>
+    <script src="../../../../Downloads/graph-settings.js"></script>
+    <script src="../../../../Downloads/graph-settings (1).js"></script>
 </head>
 <body>
 <h1>JavaScript Handlers</h1>
@@ -72,6 +74,7 @@
      * [Flutter] уже у себя получит данные аргументы в контроллере ["customStream"]
      * @param message - string
      */
+
     function onMessage(message) {
         if (isFlutterInAppWebViewReady) {
             const args = [`это колбек от onMessage() метода в который мы послали сообщение ${message}`];
@@ -97,19 +100,36 @@
      */
     window.addEventListener("flutterInAppWebViewPlatformReady", function(_) {
         window.flutter_inappwebview.callHandler('tickingStream').then(function (_) {
-            var number = 0;
-            const myTimer = setInterval(() => {
-                number++;
-                window.flutter_inappwebview.callHandler('tickingStream', `tick-${number}`);
-            }, 1000);
-
-            setTimeout(() => {
-                clearInterval(myTimer);
-                window.flutter_inappwebview.callHandler('tickingStream', 'Счётчик закончился - спасибо за внимание');
-            }, 10000);
+            // var number = 0;
+            // const myTimer = setInterval(() => {
+            //     number++;
+            //     window.flutter_inappwebview.callHandler('tickingStream', `tick-${number}`);
+            // }, 1000);
+            //
+            // setTimeout(() => {
+            //     clearInterval(myTimer);
+            //     window.flutter_inappwebview.callHandler('tickingStream', 'Счётчик закончился - спасибо за внимание');
+            // }, 10000);
 
         });
     });
+
+    var changeGraphType = {
+        funcSaveIndicators: (value) => {
+            var studyObjects = {'yoo': 'yooo'};
+            // for (var i = 0; i < Object.keys(studys).length; i++) {
+            //     var study = this.widget.chart().getStudyById(studys[i]['id'])
+            //     studyObjects[studys[i]['id']] = {study_name: studys[i]['name'], study_input: study.getInputValues()}
+            // }
+
+            function callbackFunction() {
+                return Object.assign(studyObjects, {'new_value': value});
+            }
+
+            return callbackFunction();
+        },
+
+    };
 
 </script>
 </body>
