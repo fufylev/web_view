@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
@@ -45,7 +46,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
           children: [
             SizedBox(
               width: size.width,
-              height: size.height - 50 - 250,
+              height: size.height - 50 - 320,
               child: InAppWebView(
                 initialUrlRequest: URLRequest(
                   url: Uri.parse(
@@ -113,16 +114,6 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                     InkWell(
                       onTap: () {
                         webViewController.evaluateJavascript(
-                            source: '''changeGraphType.funcChangeTimeframe(30)''').then((value) {
-                          setState(() => callBackFromButton = value.toString());
-                          log(value.toString(), name: 'funcChangeTimeframe callback');
-                        });
-                      },
-                      child: const Text('Timeframe(30)'),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
                             source: '''changeGraphType.funcChangeType(0)''').then((value) {
                           setState(() => callBackFromButton = value.toString());
                           log(value.toString(), name: 'funcChangeType callback');
@@ -166,11 +157,31 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                       onTap: () {
                         webViewController.evaluateJavascript(
                             source: '''changeGraphType.funcSaveIndicators()''').then((value) {
+                          final objectToJson = json.encode(value);
                           setState(() => callBackFromButton = value.toString());
                           log(value.toString(), name: 'funcSaveIndicators callback');
                         });
                       },
                       child: const Text('funcSaveIndicators()'),
+                    ),
+                    const SizedBox(
+                      height: 12.0,
+                    ),
+                    InkWell(
+                      onTap: () {
+                        final objectFromJson = json.decode(callBackFromButton);
+                        webViewController.evaluateJavascript(
+                            source:
+                                '''changeGraphType.funcLoadIndicators($callBackFromButton)''').then(
+                            (value) {
+                          log(value.toString(), name: 'funcLoadIndicators callback');
+                        });
+                      },
+                      child: Text(
+                        'funcLoadIndicators($callBackFromButton)',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.blue, fontSize: 14),
+                      ),
                     ),
                   ],
                 ),
