@@ -38,7 +38,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
     final size = MediaQuery.of(context).size;
 
     void onSend() async {
-      webViewController.evaluateJavascript(source: """changeGraphType.funcChangeTimeframe('{
+      webViewController.evaluateJavascript(source: """changeGraphType.funcChangeTick('{
         'ask': 1811.25,
         'bid': 1810.45,
         'change': -0.01,
