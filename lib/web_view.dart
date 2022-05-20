@@ -38,16 +38,14 @@ class _WebViewWidgetState extends State<WebViewWidget> {
     final size = MediaQuery.of(context).size;
 
     void onSend() async {
-      await webViewController.evaluateJavascript(source: """
-    window.flutter_inappwebview.callHandler('socketChannel', {
+      webViewController.evaluateJavascript(source: """changeGraphType.funcChangeTimeframe('{
         'ask': 1811.25,
         'bid': 1810.45,
         'change': -0.01,
         'digits': 2,
         'lasttime': 1652862998,
         'symbol': "GOLD",
-      });
-  """);
+      }')""");
     }
 
     return SingleChildScrollView(
@@ -65,27 +63,28 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                       'https://appcharts.ifxdb.com/index.html?symbol=GOLD&lang=en&timeframe=1&type=1&theme=light&server_type=4&showname=0&socket=1&ready_stream_new=1'),
                 ),
                 /*initialData: InAppWebViewInitialData(data: """
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    </head>
-    <body>
-        <h1>JavaScript Handlers</h1>
-        <script>
-            window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
-                window.flutter_inappwebview.callHandler('socketChannel')
-                  .then(function(result) {
-                    console.log(JSON.stringify(result));
+                          <!DOCTYPE html>
+                          <html lang="en">
+                              <head>
+                                  <meta charset="UTF-8">
+                                  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+                              </head>
+                              <body>
+                                  <h1>JavaScript Handlers</h1>
+                                  <script>
+                                      window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
+                                          window.flutter_inappwebview.callHandler('socketChannel')
+                                            .then(function(result) {
+                                              console.log(JSON.stringify(result));
+                                              return result;
 
-                    window.flutter_inappwebview
-                      .callHandler('socketChannel', result);
-                });
-            });
-        </script>
-    </body>
-</html>
+                                              window.flutter_inappwebview
+                                                .callHandler('socketChannel1', {'event': '', result: result});
+                                          });
+                                      });
+                                  </script>
+                              </body>
+                          </html>
                       """),*/
                 initialOptions: InAppWebViewGroupOptions(
                   crossPlatform: InAppWebViewOptions(
@@ -105,7 +104,7 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                     webViewController = controller;
                   });
                   controller.addJavaScriptHandler(
-                    handlerName: 'socketChannel',
+                    handlerName: 'socketChannel1',
                     callback: (args) {
                       log(args.toString(), name: 'Аргументы из функции readyStreamNew');
                       setState(() => messageJavascriptChannelReadyStreamNew = args.toString());
