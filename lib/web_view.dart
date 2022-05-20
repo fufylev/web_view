@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
@@ -38,6 +37,19 @@ class _WebViewWidgetState extends State<WebViewWidget> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+    void onSend() async {
+      await webViewController.evaluateJavascript(source: """
+    window.flutter_inappwebview.callHandler('socketChannel', {
+        'ask': 1811.25,
+        'bid': 1810.45,
+        'change': -0.01,
+        'digits': 2,
+        'lasttime': 1652862998,
+        'symbol': "GOLD",
+      });
+  """);
+    }
+
     return SingleChildScrollView(
       child: SizedBox(
         width: size.width,
@@ -52,6 +64,29 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                   url: Uri.parse(
                       'https://appcharts.ifxdb.com/index.html?symbol=GOLD&lang=en&timeframe=1&type=1&theme=light&server_type=4&showname=0&socket=1&ready_stream_new=1'),
                 ),
+                /*initialData: InAppWebViewInitialData(data: """
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    </head>
+    <body>
+        <h1>JavaScript Handlers</h1>
+        <script>
+            window.addEventListener("flutterInAppWebViewPlatformReady", function(event) {
+                window.flutter_inappwebview.callHandler('socketChannel')
+                  .then(function(result) {
+                    console.log(JSON.stringify(result));
+
+                    window.flutter_inappwebview
+                      .callHandler('socketChannel', result);
+                });
+            });
+        </script>
+    </body>
+</html>
+                      """),*/
                 initialOptions: InAppWebViewGroupOptions(
                   crossPlatform: InAppWebViewOptions(
                     useShouldOverrideUrlLoading: true,
@@ -70,11 +105,8 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                     webViewController = controller;
                   });
                   controller.addJavaScriptHandler(
-                    handlerName: 'readyStreamNew',
+                    handlerName: 'socketChannel',
                     callback: (args) {
-                      /**
-                         !!!!!!!!!!!!!!!! Вот тут должен быть стрим от графика
-                         */
                       log(args.toString(), name: 'Аргументы из функции readyStreamNew');
                       setState(() => messageJavascriptChannelReadyStreamNew = args.toString());
                     },
@@ -102,86 +134,8 @@ class _WebViewWidgetState extends State<WebViewWidget> {
                 child: Column(
                   children: [
                     InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
-                            source: '''changeGraphType.funcChangeTimeframe(1)''').then((value) {
-                          log(value.toString(), name: 'funcChangeTimeframe callback');
-                          setState(() => callBackFromButton = value.toString());
-                        });
-                      },
-                      child: const Text('Timeframe(1)'),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
-                            source: '''changeGraphType.funcChangeType(0)''').then((value) {
-                          setState(() => callBackFromButton = value.toString());
-                          log(value.toString(), name: 'funcChangeType callback');
-                        });
-                      },
-                      child: const Text('funcChangeType(0)'),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
-                            source: '''changeGraphType.funcChangeType(1)''').then((value) {
-                          setState(() => callBackFromButton = value.toString());
-                          log(value.toString(), name: 'funcChangeType callback');
-                        });
-                      },
-                      child: const Text('funcChangeType(1)'),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
-                            source: '''changeGraphType.funcCreateStudy(['Aroon'])''').then((value) {
-                          setState(() => callBackFromButton = value.toString());
-                          log(value.toString(), name: 'funcCreateStudy callback');
-                        });
-                      },
-                      child: const Text('funcCreateStudy([Aroon])'),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
-                            source:
-                                '''changeGraphType.funcCreateStudy(['Chande Kroll Stop'])''').then(
-                            (value) {
-                          setState(() => callBackFromButton = value.toString());
-                          log(value.toString(), name: 'funcCreateStudy callback');
-                        });
-                      },
-                      child: const Text('funcCreateStudy([Chande Kroll Stop])'),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        webViewController.evaluateJavascript(
-                            source: '''changeGraphType.funcSaveIndicators()''').then((value) {
-                          final objectToJson = json.encode(value);
-                          setState(() => callBackFromButton = value.toString());
-                          log(value.toString(), name: 'funcSaveIndicators callback');
-                        });
-                      },
-                      child: const Text('funcSaveIndicators()'),
-                    ),
-                    const SizedBox(
-                      height: 12.0,
-                    ),
-                    InkWell(
-                      onTap: () {
-                        final objectFromJson = json.decode(callBackFromButton);
-                        webViewController.evaluateJavascript(
-                            source:
-                                '''changeGraphType.funcLoadIndicators($callBackFromButton)''').then(
-                            (value) {
-                          log(value.toString(), name: 'funcLoadIndicators callback');
-                        });
-                      },
-                      child: Text(
-                        'funcLoadIndicators($callBackFromButton)',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.blue, fontSize: 14),
-                      ),
+                      onTap: () => onSend(),
+                      child: const Text('send socket'),
                     ),
                   ],
                 ),
